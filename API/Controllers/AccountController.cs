@@ -21,7 +21,7 @@ namespace API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<UserDto>> Register(RegisterDto registerDTO)
+        public async Task<ActionResult<DTOs.UserDto>> Register(RegisterDto registerDTO)
         {
             if (await UserExists(registerDTO.Username))
                 return BadRequest("User name has taken");
@@ -36,7 +36,7 @@ namespace API.Controllers
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            return new UserDto
+            return new DTOs.UserDto
             {
                 Username = user.UserName,
                 Token = _tokenService.CreateToken(user)
@@ -44,9 +44,9 @@ namespace API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
+        public async Task<ActionResult<DTOs.UserDto>> Login(LoginDto loginDto)
         {
-            var user = await _context.Users.SingleOrDefaultAsync(x =>
+            var user = await _context.Users.Include(p => p.Photos).SingleOrDefaultAsync(x =>
                 x.UserName == loginDto.Username
             );
 
@@ -63,10 +63,11 @@ namespace API.Controllers
                     return Unauthorized("Invalid password");
             }
 
-            return new UserDto
+            return new API.DTOs.UserDto
             {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user),
+                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url
             };
         }
 
